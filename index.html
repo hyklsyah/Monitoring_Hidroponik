@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Sistem Hidroponik IoT</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+
+        /* style.css */
+
+/* Targetkan card di dalam dashboard grid, jika ini adalah container utama grafik */
+.dashboard.grid .card {
+    /* Tinggi yang ditetapkan (misalnya 300 piksel) */
+    height: 300px; 
+    
+    /* Penting: Setel posisi agar canvas dapat mengisi area ini */
+    position: relative; 
+}
+        /* ================================================= */
+        /* === TEMA CERAH: Variabel Warna dan Font === */
+        /* ================================================= */
+        :root {
+            --bg-color: #e9f5e9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-green: #38a169;
+            --secondary-green: #276749;
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --danger-red: #e74c3c;
+            --warning-orange: #f39c12;
+            --info-blue: #3498db; 
+            --success-color: #2ecc71; 
+        }
+        
+        /* ================================================= */
+        /* === Global Styles dan Body === */
+        /* ================================================= */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        /* ================================================= */
+        /* === Container & Header Utama === */
+        /* ================================================= */
+        .container {
+            width: 100%; 
+            max-width: 1280px;
+            padding: 40px; 
+            margin: 20px auto 40px auto; 
+        }
+        .header { 
+            text-align: center; 
+            padding-bottom: 25px; 
+            border-bottom: 2px solid #dcdcdc;
+            margin-bottom: 40px; 
+        }
+        .header h1 { 
+            color: var(--secondary-green); 
+            font-weight: 700; 
+            font-size: 3em; 
+            margin: 0; 
+        }
+        .header p { 
+            color: #7f8c8d; 
+            margin: 5px 0 0; 
+            font-size: 1.1em; 
+        }
+        .conn {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #95a5a6;
+        }
+
+        /* ================================================= */
+        /* === Dashboard Cards (Data Sensor) === */
+        /* ================================================= */
+        .dashboard { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 30px;
+            width: 100%;
+        }
+        
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 15px;
+            box-shadow: 0 8px 25px var(--shadow-light);
+            padding: 25px; 
+            text-align: center; 
+            transition: transform .3s ease, box-shadow .3s ease; 
+        }
+        .card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 12px 30px var(--shadow-light); 
+        }
+        .card h3 { 
+            margin-top: 0; 
+            font-size: 1.3em; 
+            color: var(--secondary-green);
+            font-weight: 600; 
+        }
+        .card h3 i { margin-right: 8px; color: var(--primary-green); }
+
+        .sensor-value { 
+            font-size: 3.5em;
+            font-weight: 700; 
+            color: var(--primary-green); 
+            margin: 15px 0 5px; 
+        }
+        .sensor-unit { 
+            color: #95a5a6; 
+            font-size: 1em; 
+            margin-bottom: 10px;
+        }
+
+        /* Status Label */
+        .status { 
+            font-weight: 600; 
+            padding: 7px 15px; 
+            border-radius: 20px;
+            margin-top: 10px; 
+            display: inline-block; 
+            font-size: 0.9em;
+        }
+        .status.normal { background: rgba(46,204,113,0.15); color: var(--primary-green); border: 1px solid var(--primary-green); }
+        .status.warning{ background: rgba(243,156,18,0.15); color: var(--warning-orange); border: 1px solid var(--warning-orange); }
+        .status.danger { background: rgba(231,76,60,0.15); color: var(--danger-red); border: 1px solid var(--danger-red); }
+
+        /* Status Sistem Card */
+        .card#card-status-sistem { text-align: left; }
+        .card#card-status-sistem strong { color: var(--secondary-green); font-weight: 600; }
+        .status-indicator { font-weight: 700; }
+        .status-indicator.ON { color: var(--primary-green); }
+        .status-indicator.OFF { color: #95a5a6; }
+        .status-indicator.NORMAL { color: #2980b9; }
+
+
+        /* ================================================= */
+        /* === Kontrol, Grafik & Log Containers === */
+        /* ================================================= */
+        .controls, .chart-container, .log-container, .info-section {
+            grid-column: 1 / -1; 
+            padding: 30px; 
+            background: var(--card-bg); 
+            border-radius: 15px; 
+            box-shadow: 0 8px 25px var(--shadow-light); 
+            margin-top: 25px;
+        }
+        .controls h3, .chart-container h3, .log-container h3, .info-section h3 { 
+            margin-top: 0; 
+            color: var(--secondary-green); 
+            font-weight: 700; 
+            text-align: left; 
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        
+        /* Tombol Kontrol (tidak berubah) */
+        .control-group { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+            justify-content: center; 
+        }
+        .control-btn {
+            padding: 14px 25px; font-size: 1em; font-weight: 600; border: 1px solid #dcdcdc;
+            border-radius: 10px; cursor: pointer; transition: background-color .2s, transform .2s, box-shadow .2s; 
+            white-space: nowrap; background-color: #f7f7f7; color: var(--text-color); 
+        }
+        .control-btn:hover { background-color: #e0e0e0; transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+        .control-btn.active { background-color: var(--primary-green); color: #fff; border-color: var(--primary-green); }
+        .control-btn#btn-reset { background-color: var(--danger-red); color: #fff; border-color: var(--danger-red); }
+        .control-btn#btn-reset:hover { background-color: #c0392b; border-color: #c0392b; }
+        
+        /* Grafik Placeholder (tidak berubah) */
+        .chart { 
+            text-align: center; padding: 50px 0; color: #95a5a6; background-color: #f7f7f7;
+            border-radius: 10px; height: 250px; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; border: 1px dashed #cccccc;
+        }
+
+        /* Log Umum */
+        .log-entries { 
+            max-height: 300px; 
+            overflow-y: auto; 
+            border: 1px solid #e0eeef;
+            padding: 15px; 
+            border-radius: 10px; 
+            background-color: #fcfcfc;
+        }
+        .log-entry { 
+            display: flex; justify-content: space-between; 
+            border-bottom: 1px dashed #eeeeee; padding: 10px 0; font-size: 0.95em;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry .timestamp { 
+            color: #95a5a6; font-size: .85em; white-space: nowrap; margin-left: 15px; 
+        }
+        
+        /* ================================================= */
+        /* === NEW: Panduan Perawatan Vertikal (3 Baris) === */
+        /* ================================================= */
+        .guide-grid {
+            /* Mengubah layout menjadi grid 1 kolom (vertikal) dengan jarak */
+            display: grid;
+            grid-template-columns: 1fr; 
+            gap: 25px;
+        }
+        /* Hapus .guide-col karena sudah 1 kolom */
+
+        .guide-box {
+            background-color: #fcfcfc;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Shadow dibuat sedikit lebih menonjol */
+            border-top: 5px solid var(--info-blue); 
+            transition: box-shadow 0.3s ease;
+        }
+        .guide-box:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .guide-box.danger-care { border-top-color: var(--danger-red); }
+        .guide-box.warning-care { border-top-color: var(--warning-orange); }
+        .guide-box.success-care { border-top-color: var(--success-color); }
+
+        .guide-box h4 {
+            color: var(--secondary-green);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.25em;
+            display: flex;
+            align-items: center;
+        }
+        .guide-box h4 i { margin-right: 10px; font-size: 1.2em; }
+        .guide-box.success-care h4 i { color: var(--success-color); }
+        .guide-box.info-care h4 i { color: var(--info-blue); }
+        .guide-box.warning-care h4 i { color: var(--warning-orange); }
+
+
+        .tip-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+        .tip-item i {
+            margin-right: 10px;
+            color: var(--primary-green);
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+        .tip-item p {
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        /* ================================================= */
+        /* === Media Queries (Responsiveness) === */
+        /* ================================================= */
+        @media (max-width: 768px) { 
+            .container { padding: 15px; margin-top: 10px; margin-bottom: 20px; }
+            .header h1 { font-size: 1.8em; padding: 0 5px; }
+            .header p { font-size: 1em; padding: 0 5px; }
+            .dashboard { grid-template-columns: 1fr; gap: 20px; } 
+            .sensor-value { font-size: 2.8em; } 
+            .controls, .chart-container, .log-container { padding: 20px; }
+            .control-group { flex-direction: column; }
+            .control-btn { width: 100%; padding: 12px 20px; }
+            .log-entries { max-height: 200px; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header class="header">
+            <h1>🌱 Dashboard Monitoring Hidroponik</h1>
+            <p>Rancang Bangun Budidaya Tanaman Selada Berbasis Internet of Things</p>
+            <div class="conn" id="conn">Menyambungkan ke Firebase…</div>
+        </header>
+
+        <section class="dashboard">
+            <article class="card">
+                <h3><i class="fas fa-thermometer-half"></i> Suhu Air</h3>
+                <div class="sensor-value" id="suhu">--</div>
+                <div class="sensor-unit">°Celcius</div>
+                <div class="status normal" id="status-suhu">Normal</div>
+            </article>
+
+            <article class="card">
+                <h3><i class="fas fa-flask"></i> pH Air </h3>
+                <div class="sensor-value" id="ph-air">--</div>
+                <div class="sensor-unit">pH</div>
+                <div class="status normal" id="status-ph">Normal</div>
+            </article>
+
+            <article class="card">
+                <h3><i class="fas fa-tint"></i> Kadar Nutrisi (TDS)</h3>
+                <div class="sensor-value" id="tds">--</div>
+                <div class="sensor-unit">ppm</div>
+                <div class="status normal" id="status-tds">Normal</div>
+            </article>
+
+            <article class="card" id="card-status-sistem">
+                <h3><i class="fas fa-cog"></i> Status Sistem</h3>
+                <div style="text-align: left; padding: 5px; margin-top: 10px;">
+                    <strong>Pompa Air:</strong> <span id="status-pompa" class="status-indicator ON">Otomatis (ON)</span><br>
+                    <strong>Sirkulasi:</strong> <span id="status-sirkulasi" class="status-indicator NORMAL">Normal</span>
+                </div>
+            </article>
+
+            <section class="controls">
+                <h3><i class="fas fa-sliders-h"></i> Kontrol Manual</h3>
+                <div class="control-group">
+                    <button class="control-btn" id="btn-pompa">Pompa Air: OFF</button>
+                    <button class="control-btn" id="btn-reset">Reset Sistem</button>
+                    <button class="control-btn" id="btn-download">Download Data</button>
+                </div>
+            </section>
+        </section>
+        
+
+        <section class="chart-container">
+            <h3><i class="fas fa-chart-line"></i> Grafik Data Sensor (20 Poin Terakhir)</h3>
+            
+            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+            <div class="dashboard grid"> 
+                <article class="card">
+                    <h4>Suhu (°C)</h4>
+                    <canvas id="suhuChart"></canvas>
+                </article>
+                
+                <article class="card">
+                    <h4>pH Air</h4>
+                    <canvas id="phChart"></canvas>
+                </article>
+                
+                <article class="card">
+                    <h4>Kadar Nutrisi (TDS)</h4>
+                    <canvas id="tdsChart"></canvas>
+                </article>
+            </div>
+        </section>
+        
+        <section class="log-container">
+            <h3><i class="fas fa-clipboard-list"></i> Log Aktivitas Sistem Umum</h3>
+            <div id="log-entries" class="log-entries">
+                <div class="log-entry">Sistem dimulai. <span class="timestamp">2025-10-17 01:00</span></div>
+                <div class="log-entry">Peringatan: TDS rendah. <span class="timestamp">2025-10-17 01:03</span></div>
+                <div class="log-entry">Kontrol Manual: Pompa Nutrisi Diaktifkan. <span class="timestamp">2025-10-17 02:00</span></div>
+                <div class="log-entry">Sistem Normal. <span class="timestamp">2025-10-17 02:30</span></div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="./firebase.js"></script>
+    <script type="module" src="./script.js"></script>
+
+</body>
+</html>
